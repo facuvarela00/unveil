@@ -1,3 +1,5 @@
+import { FaSync, FaDoorOpen, FaTv } from 'react-icons/fa';
+import { GiTheaterCurtains } from 'react-icons/gi';
 import { PlayerIcon } from './AnimalPicker';
 import { Room } from '../types';
 
@@ -30,7 +32,7 @@ export default function Podium({ room, myId, isLeader, onNewGame, onGoHome }: Po
 
         {/* Header */}
         <div className="text-center mb-7">
-          <div className="text-[3rem] mb-1.5">🎭</div>
+          <div className="text-[3rem] mb-1.5 flex justify-center text-[#a855f7]" style={{ filter: 'drop-shadow(0 0 12px rgba(168,85,247,0.5))' }}><GiTheaterCurtains /></div>
           <div
             className="font-display text-[1.4rem] font-black mb-1"
             style={{
@@ -84,8 +86,9 @@ export default function Podium({ room, myId, isLeader, onNewGame, onGoHome }: Po
                     {isMe && <span className="ml-1.5 text-[0.7rem] text-text-muted">(vos)</span>}
                   </div>
                   {p.characterName && (
-                    <div className="text-[0.78rem] text-text-secondary mt-px">
-                      Era {p.characterName}{p.characterOrigin ? ` · ${p.characterOrigin}` : ''}
+                    <div className="text-[0.78rem] text-text-secondary mt-px flex items-center gap-1">
+                      Era {p.characterName}
+                      {p.characterOrigin && <><FaTv className="opacity-50 ml-1" />{p.characterOrigin}</>}
                     </div>
                   )}
                 </div>
@@ -109,11 +112,11 @@ export default function Podium({ room, myId, isLeader, onNewGame, onGoHome }: Po
         <div className="flex flex-col gap-2">
           {isLeader && (
             <button className="btn btn-primary btn-full btn-lg" onClick={onNewGame}>
-              🔄 Nueva partida (misma sala)
+              <FaSync className="inline mr-2" />Nueva partida (misma sala)
             </button>
           )}
           <button className="btn btn-ghost btn-full" onClick={onGoHome}>
-            🚪 Volver al inicio
+            <FaDoorOpen className="inline mr-2" />Volver al inicio
           </button>
         </div>
 

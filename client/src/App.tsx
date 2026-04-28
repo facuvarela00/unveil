@@ -29,13 +29,13 @@ export default function App() {
     socket.on('room-update', (roomData: Room) => {
       setRoom(roomData);
       const { phase } = roomData;
-      if (phase === 'lobby')     setScreen('lobby');
+      if (phase === 'lobby')          setScreen('lobby');
       else if (phase === 'assigning') setScreen('assigning');
       else if (phase === 'playing')   setScreen('game');
       else if (phase === 'ended')     setScreen('podium');
     });
 
-    socket.on('winner-announced', ({ playerName }: { playerName: string }) => {
+    socket.on('winner-announced', ({ playerName }: { playerName: string; playerId: string }) => {
       setWinnerMsg(`¡${playerName} adivinó su personaje!`);
       setTimeout(() => setWinnerMsg(''), 4000);
     });
@@ -79,7 +79,7 @@ export default function App() {
   return (
     <div className="relative z-[1] min-h-screen">
       {error     && <div className="toast toast-error">{error}</div>}
-      {winnerMsg && <div className="toast toast-success">🎉 {winnerMsg}</div>}
+      {winnerMsg && <div className="toast toast-success">{winnerMsg}</div>}
 
       {screen === 'home' && <Home onJoin={handleJoin} />}
 

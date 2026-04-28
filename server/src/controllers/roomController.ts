@@ -11,6 +11,7 @@ interface CreateRoomPayload { name: string; icon: string; playerId: string }
 interface JoinRoomPayload { code: string; name: string; icon: string; playerId: string }
 interface SubmitCharacterPayload { characterName: string; characterOrigin: string }
 interface MarkWinnerPayload { playerId: string }
+interface SetTurnOrderPayload { order: string[] }
 
 export function registerRoomController(io: Server, socket: Socket): void {
   let myRoom: string | null = null;
@@ -54,7 +55,21 @@ export function registerRoomController(io: Server, socket: Socket): void {
     if (!myRoom || !myId) return;
     const { winnerName, error } = roomService.markWinner(myRoom, myId, playerId);
     if (error) { socket.emit('error', { message: error }); return; }
-    if (winnerName) io.to(myRoom).emit('winner-announced', { playerName: winnerName });
+    if (winnerName) io.to(myRoom).emit('winner-announced', { playerName: winnerName, playerId });
+    broadcast(io, myRoom);
+  });
+
+  socket.on('set-turn-order', ({ order }: SetTurnOrderPayload) => {
+    if (!myRoom || !myId) return;
+    const { error } = roomService.setTurnOrder(myRoom, myId, order);
+    if (error) { socket.emit('error', { message: error }); return; }
+    broadcast(io, myRoom);
+  });
+
+  socket.on('next-turn', () => {
+    if (!myRoom || !myId) return;
+    const { error } = roomService.nextTurn(myRoom, myId);
+    if (error) { socket.emit('error', { message: error }); return; }
     broadcast(io, myRoom);
   });
 

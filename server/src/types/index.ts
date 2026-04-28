@@ -12,10 +12,14 @@ export interface Player {
   characterOrigin: string | null;
   assignedTo: string | null;
   wins: number;
+  hasGuessed: boolean;
+  turnCount: number;
 }
 
 export interface Room {
   code: string;
   phase: GamePhase;
   players: Player[];
+  turnOrder: string[];
+  currentTurnPlayerId: string | null;
 }

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { FaTrophy, FaFlag, FaPlus, FaTimes, FaStickyNote, FaTv, FaStar, FaCheck, FaArrowRight } from 'react-icons/fa';
 import socket from '../socket';
 import { PlayerIcon } from './AnimalPicker';
 import { Room, Player } from '../types';
@@ -49,9 +50,28 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
   };
 
   const me = room.players.find(p => p.id === myId);
+  const isMyTurn = room.currentTurnPlayerId === myId;
+  const iHaveGuessed = me?.hasGuessed ?? false;
+  const currentTurnPlayer = room.players.find(p => p.id === room.currentTurnPlayerId);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+
+      {/* Turn banner */}
+      {currentTurnPlayer && (
+        <div
+          className="shrink-0 text-center py-2 text-[0.8rem] font-medium tracking-wide transition-all"
+          style={
+            isMyTurn
+              ? { background: 'rgba(0,212,255,0.15)', borderBottom: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff' }
+              : { background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)', color: '#8b9ab0' }
+          }
+        >
+          {isMyTurn
+            ? '¡Es tu turno! Hacé tu pregunta, anotá y presioná Continuar'
+            : `Turno de ${currentTurnPlayer.name}...`}
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-[rgba(7,7,15,0.85)] border-b border-[rgba(0,212,255,0.2)] backdrop-blur-md shrink-0 z-10">
@@ -71,7 +91,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
           onClick={copyCode}
           className="flex items-center gap-1.5 bg-[rgba(0,212,255,0.12)] border border-[rgba(0,212,255,0.25)] rounded-lg px-2.5 py-1 font-display text-[0.8rem] text-neon-cyan cursor-pointer transition-colors hover:bg-[rgba(0,212,255,0.2)] shrink-0"
         >
-          {copied ? '✓ Copiado' : `# ${room.code}`}
+          {copied ? <><FaCheck className="inline mr-1" />Copiado</> : `# ${room.code}`}
         </button>
 
         <div className="flex-1" />
@@ -90,6 +110,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             </div>
             <span className="text-[0.85rem] font-medium text-text-secondary">{me.name}</span>
             {isLeader && <span className="badge badge-amber text-[0.58rem]">Líder</span>}
+            {iHaveGuessed && <span className="badge badge-amber text-[0.58rem]">Adivinaste ✓</span>}
           </div>
         )}
       </div>
@@ -100,6 +121,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
           {room.players.map(p => {
             const color = getColor(room.players, p.id);
             const isMe  = p.id === myId;
+            const isCurrentTurn = p.id === room.currentTurnPlayerId;
             return (
               <button
                 key={p.id}
@@ -107,8 +129,9 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                 className="flex items-center gap-1.5 px-3 py-[7px] rounded-full border cursor-pointer transition-all duration-[0.18s] text-[0.8rem] font-medium whitespace-nowrap shrink-0 hover:-translate-y-px"
                 style={{
                   color,
-                  borderColor: color + '55',
-                  background: selectedPlayer?.id === p.id ? color + '18' : 'rgba(255,255,255,0.03)',
+                  borderColor: isCurrentTurn ? color : color + '55',
+                  background: selectedPlayer?.id === p.id ? color + '18' : isCurrentTurn ? color + '12' : 'rgba(255,255,255,0.03)',
+                  boxShadow: isCurrentTurn ? `0 0 8px ${color}44` : undefined,
                 }}
               >
                 <div
@@ -119,12 +142,21 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                 </div>
                 {p.name}
                 {isMe && <span className="opacity-50 text-[0.65rem]">(vos)</span>}
-                {p.wins > 0 && (
+                {p.hasGuessed && <FaTrophy className="text-[0.6rem] opacity-70" style={{ color: '#f59e0b' }} />}
+                {p.turnCount > 0 && (
                   <span
-                    className="font-display text-[0.65rem] font-bold px-1.5 py-px rounded-full"
+                    className="font-display text-[0.6rem] font-bold px-1 py-px rounded-full opacity-70"
                     style={{ background: color + '25', color }}
                   >
-                    {p.wins}★
+                    T{p.turnCount}
+                  </span>
+                )}
+                {p.wins > 0 && (
+                  <span
+                    className="font-display text-[0.65rem] font-bold px-1.5 py-px rounded-full flex items-center gap-0.5"
+                    style={{ background: color + '25', color }}
+                  >
+                    {p.wins}<FaStar className="text-[0.5rem]" />
                   </span>
                 )}
               </button>
@@ -149,8 +181,8 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
 
           {/* Notepad */}
           <div className="flex flex-col gap-2.5">
-            <div className="font-display text-[0.8rem] text-text-secondary uppercase tracking-[0.08em]">
-              📝 Mis notas
+            <div className="font-display text-[0.8rem] text-text-secondary uppercase tracking-[0.08em] flex items-center gap-1.5">
+              <FaStickyNote className="opacity-70" />Mis notas
             </div>
 
             <div className="flex gap-2">
@@ -166,7 +198,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                 onClick={addNote}
                 title="Agregar nota"
               >
-                ＋
+                <FaPlus />
               </button>
             </div>
 
@@ -185,13 +217,23 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                 <button
                   onClick={() => removeNote(note.id)}
                   title="Eliminar nota"
-                  className="bg-transparent border-none cursor-pointer text-text-muted p-0.5 rounded text-[0.9rem] flex items-center transition-colors hover:text-neon-red"
+                  className="bg-transparent border-none cursor-pointer text-text-muted p-0.5 rounded flex items-center transition-colors hover:text-neon-red"
                 >
-                  ✕
+                  <FaTimes />
                 </button>
               </div>
             ))}
           </div>
+
+          {/* Continuar button (current player only, not if guessed) */}
+          {isMyTurn && !iHaveGuessed && (
+            <button
+              className="btn btn-primary btn-full mt-5"
+              onClick={() => socket.emit('next-turn')}
+            >
+              <FaArrowRight className="inline mr-2" />Continuar — Siguiente turno
+            </button>
+          )}
         </div>
 
         {/* Leader controls (desktop sidebar) */}
@@ -200,10 +242,10 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             <div className="section-title mb-3">Controles</div>
             <div className="flex flex-col gap-2">
               <button className="btn btn-amber btn-full" onClick={() => setShowWinModal(true)}>
-                🏆 Marcar ganador
+                <FaTrophy className="inline mr-2" />Marcar ganador
               </button>
               <button className="btn btn-danger btn-full" onClick={endGame}>
-                🚩 Finalizar partida
+                <FaFlag className="inline mr-2" />Finalizar partida
               </button>
             </div>
           </div>
@@ -213,8 +255,8 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
       {/* Leader footer (mobile) */}
       {isLeader && (
         <div className="md:hidden flex gap-2 flex-wrap items-center px-4 py-3 border-t border-[rgba(0,212,255,0.2)] bg-[rgba(7,7,15,0.85)] shrink-0">
-          <button className="btn btn-amber" onClick={() => setShowWinModal(true)}>🏆 Ganador</button>
-          <button className="btn btn-danger" onClick={endGame}>🚩 Finalizar</button>
+          <button className="btn btn-amber" onClick={() => setShowWinModal(true)}><FaTrophy className="inline mr-1.5" />Ganador</button>
+          <button className="btn btn-danger" onClick={endGame}><FaFlag className="inline mr-1.5" />Finalizar</button>
         </div>
       )}
 
@@ -239,9 +281,21 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                 <PlayerIcon iconId={p.icon} size={28} color={color} />
               </div>
 
-              <div className="font-display text-[0.95rem] font-bold mb-4" style={{ color }}>
+              <div className="font-display text-[0.95rem] font-bold mb-1" style={{ color }}>
                 {p.name} {isMe && '(vos)'}
               </div>
+
+              {p.hasGuessed && (
+                <div className="mb-3 flex items-center justify-center gap-1.5 text-[0.75rem] text-[#f59e0b]">
+                  <FaTrophy />Adivinó su personaje
+                </div>
+              )}
+
+              {p.turnCount > 0 && (
+                <div className="mb-3 text-[0.72rem] text-text-muted">
+                  {p.turnCount} turno{p.turnCount !== 1 ? 's' : ''} jugados
+                </div>
+              )}
 
               {p.wins > 0 && (
                 <div className="mb-3">
@@ -263,18 +317,20 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                   <div className="font-display text-[1.5rem] font-black mb-1" style={{ color }}>
                     {p.characterName ?? '???'}
                   </div>
-                  <div className="text-[0.85rem] text-text-secondary mb-4">
-                    {p.characterOrigin ? `📺 ${p.characterOrigin}` : ''}
-                  </div>
+                  {p.characterOrigin && (
+                    <div className="text-[0.85rem] text-text-secondary mb-4 flex items-center justify-center gap-1.5">
+                      <FaTv className="opacity-60" />{p.characterOrigin}
+                    </div>
+                  )}
                 </>
               )}
 
-              {isLeader && !isMe && (
+              {isLeader && !isMe && !p.hasGuessed && (
                 <button
                   className="btn btn-amber btn-full mt-2"
                   onClick={() => { markWinner(p.id); setSelectedPlayer(null); }}
                 >
-                  🏆 ¡Adivinó!
+                  <FaTrophy className="inline mr-2" />¡Adivinó!
                 </button>
               )}
 
@@ -296,11 +352,11 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             className="bg-[#0f0f1e] border border-[rgba(0,212,255,0.2)] rounded-xl p-6 max-w-[400px] w-full shadow-[0_0_40px_rgba(0,0,0,0.5)] animate-fade-up"
             onClick={e => e.stopPropagation()}
           >
-            <div className="font-display text-[1rem] font-bold mb-4 text-neon-amber">
-              🏆 ¿Quién adivinó su personaje?
+            <div className="font-display text-[1rem] font-bold mb-4 text-neon-amber flex items-center gap-2">
+              <FaTrophy />¿Quién adivinó su personaje?
             </div>
             <div className="flex flex-col gap-1.5 mb-4 max-h-[250px] overflow-y-auto">
-              {room.players.filter(p => p.id !== myId).map(p => {
+              {room.players.filter(p => p.id !== myId && !p.hasGuessed).map(p => {
                 const color = getColor(room.players, p.id);
                 return (
                   <div
@@ -319,6 +375,11 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                   </div>
                 );
               })}
+              {room.players.filter(p => p.id !== myId && !p.hasGuessed).length === 0 && (
+                <div className="text-center py-4 text-text-muted text-[0.82rem]">
+                  Todos ya adivinaron su personaje
+                </div>
+              )}
             </div>
             <button className="btn btn-ghost btn-full" onClick={() => setShowWinModal(false)}>
               Cancelar
