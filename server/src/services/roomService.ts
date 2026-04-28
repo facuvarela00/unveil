@@ -160,6 +160,7 @@ export const roomService = {
 
     const currentPlayer = room.players.find(p => p.id === playerId);
     if (!currentPlayer) return { error: 'Jugador no encontrado.' };
+    if (currentPlayer.hasGuessed) return { error: 'Ya adivinaste tu personaje.' };
 
     currentPlayer.turnCount++;
 

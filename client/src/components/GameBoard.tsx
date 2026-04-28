@@ -79,29 +79,61 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
       {/* Turn banner */}
       {currentTurnPlayer && (
         <div
-          className="shrink-0 flex items-center justify-between px-4 py-2 text-[0.8rem] font-medium tracking-wide transition-all"
+          className="shrink-0 flex items-center gap-3 px-4 py-3 transition-all"
           style={
             isMyTurn
-              ? { background: 'rgba(0,212,255,0.15)', borderBottom: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff' }
-              : { background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)', color: '#8b9ab0' }
+              ? { background: 'rgba(0,212,255,0.12)', borderBottom: '2px solid rgba(0,212,255,0.5)' }
+              : { background: 'rgba(255,255,255,0.025)', borderBottom: '1px solid rgba(255,255,255,0.07)' }
           }
         >
-          <span className="flex-1 text-center">
-            {isMyTurn
-              ? '¡Es tu turno! Hacé tu pregunta, anotá y presioná Continuar'
-              : <>Turno de{' '}
+          {/* Player avatar */}
+          <div
+            className="w-11 h-11 rounded-full flex items-center justify-center border-2 shrink-0 transition-all"
+            style={{
+              color: currentTurnColor,
+              borderColor: isMyTurn ? currentTurnColor : currentTurnColor + '66',
+              background: currentTurnColor + '18',
+              boxShadow: isMyTurn ? `0 0 16px ${currentTurnColor}55` : 'none',
+            }}
+          >
+            <PlayerIcon iconId={currentTurnPlayer.icon} size={20} color={currentTurnColor} />
+          </div>
+
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            {isMyTurn ? (
+              <>
+                <div
+                  className="font-display font-bold text-[1rem] leading-tight"
+                  style={{ color: '#00d4ff', textShadow: '0 0 12px rgba(0,212,255,0.7)' }}
+                >
+                  ¡Es tu turno!
+                </div>
+                <div className="text-[0.72rem] text-text-muted mt-0.5">
+                  Hacé tu pregunta, anotá y presioná Continuar
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="font-display font-bold text-[1rem] leading-tight">
+                  Turno de{' '}
                   <span style={{
                     color: currentTurnColor,
-                    textShadow: `0 0 10px ${currentTurnColor}99, 0 0 3px ${currentTurnColor}`,
-                    fontWeight: 700,
+                    textShadow: `0 0 12px ${currentTurnColor}99, 0 0 4px ${currentTurnColor}`,
                   }}>
                     {currentTurnPlayer.name}
                   </span>
-                  ...
-                </>}
-          </span>
+                </div>
+                <div className="text-[0.72rem] text-text-muted mt-0.5">
+                  Esperá tu turno para preguntar
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Round badge */}
           <span
-            className="shrink-0 font-display text-[0.65rem] font-bold uppercase tracking-[0.1em] ml-3 px-2 py-0.5 rounded-full border"
+            className="shrink-0 font-display text-[0.65rem] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-full border"
             style={{
               color: '#8b9ab0',
               borderColor: 'rgba(0,212,255,0.2)',
