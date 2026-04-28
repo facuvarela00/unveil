@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { registerRoomController } from './controllers/roomController';
 
 const app = express();
+app.get('/ping', (_req, res) => res.send('pong'));
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
