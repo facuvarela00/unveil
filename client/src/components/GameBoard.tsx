@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { FaTrophy, FaFlag, FaPlus, FaTimes, FaStickyNote, FaTv, FaStar, FaCheck, FaArrowRight } from 'react-icons/fa';
 import socket from '../socket';
 import { PlayerIcon } from './AnimalPicker';
@@ -53,6 +53,25 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
   const isMyTurn = room.currentTurnPlayerId === myId;
   const iHaveGuessed = me?.hasGuessed ?? false;
   const currentTurnPlayer = room.players.find(p => p.id === room.currentTurnPlayerId);
+  const currentTurnColor = room.currentTurnPlayerId ? getColor(room.players, room.currentTurnPlayerId) : '#00d4ff';
+
+  // Round tracking
+  const activePlayers = room.players.filter(p => !p.hasGuessed);
+  const currentRound = activePlayers.length > 0
+    ? Math.min(...activePlayers.map(p => p.turnCount)) + 1
+    : 1;
+
+  const [roundAnimation, setRoundAnimation] = useState<number | null>(null);
+  const prevRoundRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (currentRound !== prevRoundRef.current) {
+      prevRoundRef.current = currentRound;
+      setRoundAnimation(currentRound);
+      const t = setTimeout(() => setRoundAnimation(null), 2800);
+      return () => clearTimeout(t);
+    }
+  }, [currentRound]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -60,16 +79,67 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
       {/* Turn banner */}
       {currentTurnPlayer && (
         <div
-          className="shrink-0 text-center py-2 text-[0.8rem] font-medium tracking-wide transition-all"
+          className="shrink-0 flex items-center justify-between px-4 py-2 text-[0.8rem] font-medium tracking-wide transition-all"
           style={
             isMyTurn
               ? { background: 'rgba(0,212,255,0.15)', borderBottom: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff' }
               : { background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)', color: '#8b9ab0' }
           }
         >
-          {isMyTurn
-            ? '¡Es tu turno! Hacé tu pregunta, anotá y presioná Continuar'
-            : `Turno de ${currentTurnPlayer.name}...`}
+          <span className="flex-1 text-center">
+            {isMyTurn
+              ? '¡Es tu turno! Hacé tu pregunta, anotá y presioná Continuar'
+              : <>Turno de{' '}
+                  <span style={{
+                    color: currentTurnColor,
+                    textShadow: `0 0 10px ${currentTurnColor}99, 0 0 3px ${currentTurnColor}`,
+                    fontWeight: 700,
+                  }}>
+                    {currentTurnPlayer.name}
+                  </span>
+                  ...
+                </>}
+          </span>
+          <span
+            className="shrink-0 font-display text-[0.65rem] font-bold uppercase tracking-[0.1em] ml-3 px-2 py-0.5 rounded-full border"
+            style={{
+              color: '#8b9ab0',
+              borderColor: 'rgba(0,212,255,0.2)',
+              background: 'rgba(0,212,255,0.06)',
+            }}
+          >
+            Ronda {currentRound}
+          </span>
+        </div>
+      )}
+
+      {/* Round animation overlay */}
+      {roundAnimation !== null && (
+        <div
+          key={`round-${roundAnimation}`}
+          className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none animate-round-fade"
+        >
+          <div className="text-center px-10 py-8 rounded-2xl"
+            style={{ background: 'rgba(7,7,15,0.82)', border: '1px solid rgba(0,212,255,0.25)', backdropFilter: 'blur(12px)' }}
+          >
+            <div
+              className="font-display font-black tracking-[0.15em] uppercase mb-1"
+              style={{
+                fontSize: '3.5rem',
+                background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: 'none',
+                filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.5))',
+              }}
+            >
+              Ronda {roundAnimation}
+            </div>
+            <div className="text-text-muted text-[0.8rem] tracking-[0.2em] uppercase">
+              {roundAnimation === 1 ? '¡Que empiece el juego!' : 'Nueva ronda'}
+            </div>
+          </div>
         </div>
       )}
 

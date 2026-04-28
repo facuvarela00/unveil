@@ -48,6 +48,13 @@ export default {
           '0%, 100%': { boxShadow: '0 0 10px rgba(0,212,255,0.2)' },
           '50%':      { boxShadow: '0 0 24px rgba(0,212,255,0.5)' },
         },
+        roundFade: {
+          '0%':   { opacity: '0', transform: 'scale(0.65)' },
+          '18%':  { opacity: '1', transform: 'scale(1.04)' },
+          '25%':  { opacity: '1', transform: 'scale(1)' },
+          '72%':  { opacity: '1', transform: 'scale(1)' },
+          '100%': { opacity: '0', transform: 'scale(1.08)' },
+        },
       },
       animation: {
         'fade-up':    'fadeUp 0.4s ease both',
@@ -56,6 +63,7 @@ export default {
         'shimmer':    'shimmer 2.5s linear infinite',
         'toast-in':   'toastIn 0.3s ease',
         'pulse-glow': 'pulseGlow 2s ease infinite',
+        'round-fade': 'roundFade 2.8s ease forwards',
       },
     },
   },

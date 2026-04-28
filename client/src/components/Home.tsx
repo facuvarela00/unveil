@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { FaBolt, FaRocket } from 'react-icons/fa';
 import AnimalPicker from './AnimalPicker';
 import { JoinParams } from '../types';
 
@@ -117,7 +118,7 @@ export default function Home({ onJoin }: HomeProps) {
               type="submit"
               className={`btn btn-full btn-lg mt-1 ${tab === 'create' ? 'btn-primary' : 'btn-secondary'}`}
             >
-              {tab === 'create' ? '⚡ Crear Sala' : '🚀 Unirse'}
+              {tab === 'create' ? <><FaBolt className="inline mr-2" />Crear Sala</> : <><FaRocket className="inline mr-2" />Unirse</>}
             </button>
           </form>
         </div>

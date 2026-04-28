@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaGripVertical, FaRandom } from 'react-icons/fa';
+import { FaGripVertical, FaRandom, FaClipboard, FaLink, FaHourglassHalf, FaGamepad } from 'react-icons/fa';
 import socket from '../socket';
 import { PlayerIcon } from './AnimalPicker';
 import { Room, Player } from '../types';
@@ -92,12 +92,12 @@ export default function Lobby({ room, myId, isLeader, onGoHome }: LobbyProps) {
             <button className="btn btn-ghost btn-sm" onClick={copyCode}>
               {copied
                 ? <span className="text-neon-green animate-fade-up text-[0.75rem]">¡Copiado!</span>
-                : '📋 Copiar código'}
+                : <><FaClipboard className="inline mr-1.5" />Copiar código</>}
             </button>
             <button className="btn btn-ghost btn-sm" onClick={copyLink}>
               {copiedLink
                 ? <span className="text-neon-green animate-fade-up text-[0.75rem]">¡Link copiado!</span>
-                : '🔗 Copiar link'}
+                : <><FaLink className="inline mr-1.5" />Copiar link</>}
             </button>
           </div>
         </div>
@@ -175,7 +175,9 @@ export default function Lobby({ room, myId, isLeader, onGoHome }: LobbyProps) {
               onClick={() => socket.emit('start-assignment')}
               disabled={room.players.length < 2}
             >
-              {room.players.length < 2 ? '⏳ Esperando más jugadores...' : '🎮 Iniciar Partida'}
+              {room.players.length < 2
+                ? <><FaHourglassHalf className="inline mr-2" />Esperando más jugadores...</>
+                : <><FaGamepad className="inline mr-2" />Iniciar Partida</>}
             </button>
             {room.players.length < 2 && (
               <p className="text-center text-[0.78rem] text-text-muted">

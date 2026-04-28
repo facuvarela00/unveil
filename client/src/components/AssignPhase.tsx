@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FaCheckCircle } from 'react-icons/fa';
 import socket from '../socket';
 import { PlayerIcon } from './AnimalPicker';
 import { Room } from '../types';
@@ -82,7 +83,7 @@ export default function AssignPhase({ room, myId }: AssignPhaseProps) {
         <div className="card card-glow">
           {alreadySubmitted ? (
             <div className="text-center py-5">
-              <div className="text-[2.5rem] mb-2.5">✅</div>
+              <div className="text-[2.5rem] mb-2.5 flex justify-center text-neon-green"><FaCheckCircle /></div>
               <div className="font-display text-[1rem] text-neon-green font-bold">
                 ¡Personaje confirmado!
               </div>
@@ -125,7 +126,7 @@ export default function AssignPhase({ room, myId }: AssignPhaseProps) {
               </div>
 
               <button type="submit" className="btn btn-secondary btn-full btn-lg mt-1">
-                ✅ Confirmar personaje
+                <FaCheckCircle className="inline mr-2" />Confirmar personaje
               </button>
             </form>
           )}

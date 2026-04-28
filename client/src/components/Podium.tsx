@@ -1,4 +1,4 @@
-import { FaSync, FaDoorOpen, FaTv } from 'react-icons/fa';
+import { FaSync, FaDoorOpen, FaTv, FaMedal } from 'react-icons/fa';
 import { GiTheaterCurtains } from 'react-icons/gi';
 import { PlayerIcon } from './AnimalPicker';
 import { Room } from '../types';
@@ -7,7 +7,7 @@ const COLORS = ['#00d4ff','#a855f7','#22c55e','#f59e0b','#ef4444','#ec4899','#3b
 const getColor = (players: Room['players'], id: string) =>
   COLORS[players.findIndex(p => p.id === id) % COLORS.length];
 
-const MEDALS = ['🥇', '🥈', '🥉'];
+const MEDAL_COLORS = ['#f59e0b', '#94a3b8', '#b45309'];
 
 const rankBg: Record<number, string> = {
   0: 'bg-gradient-to-br from-[rgba(245,158,11,0.15)] to-[rgba(253,230,138,0.05)] border-[rgba(245,158,11,0.4)] shadow-[0_0_20px_rgba(245,158,11,0.1)]',
@@ -64,11 +64,10 @@ export default function Podium({ room, myId, isLeader, onNewGame, onGoHome }: Po
                 style={isMe ? { outline: `2px solid ${color}55` } : {}}
               >
                 {/* Rank */}
-                <div className="font-display text-[1.1rem] font-black w-8 text-center shrink-0">
-                  {idx === 0 && <span style={{ color: '#f59e0b', textShadow: '0 0 12px rgba(245,158,11,0.5)' }}>{MEDALS[0]}</span>}
-                  {idx === 1 && <span style={{ color: '#94a3b8' }}>{MEDALS[1]}</span>}
-                  {idx === 2 && <span style={{ color: '#b45309' }}>{MEDALS[2]}</span>}
-                  {idx >= 3 && <span className="text-text-muted text-[0.9rem]">{idx + 1}</span>}
+                <div className="font-display text-[1.1rem] font-black w-8 text-center shrink-0 flex items-center justify-center">
+                  {idx < 3
+                    ? <FaMedal style={{ color: MEDAL_COLORS[idx], filter: idx === 0 ? 'drop-shadow(0 0 6px rgba(245,158,11,0.6))' : undefined }} />
+                    : <span className="text-text-muted text-[0.9rem]">{idx + 1}</span>}
                 </div>
 
                 {/* Avatar */}
