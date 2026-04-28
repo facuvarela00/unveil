@@ -1,0 +1,331 @@
+import { useState, useCallback } from 'react';
+import socket from '../socket';
+import { PlayerIcon } from './AnimalPicker';
+import { Room, Player } from '../types';
+
+const COLORS = ['#00d4ff','#a855f7','#22c55e','#f59e0b','#ef4444','#ec4899','#3b82f6','#f97316'];
+const getColor = (players: Room['players'], id: string) =>
+  COLORS[players.findIndex(p => p.id === id) % COLORS.length];
+
+interface Note { id: number; text: string }
+let noteIdCounter = 0;
+
+interface GameBoardProps {
+  room: Room;
+  myId: string;
+  isLeader: boolean;
+}
+
+export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [showWinModal, setShowWinModal]       = useState(false);
+  const [notes, setNotes]                     = useState<Note[]>([]);
+  const [noteInput, setNoteInput]             = useState('');
+  const [copied, setCopied]                   = useState(false);
+
+  const addNote = useCallback(() => {
+    if (!noteInput.trim()) return;
+    setNotes(prev => [...prev, { id: ++noteIdCounter, text: noteInput.trim() }]);
+    setNoteInput('');
+  }, [noteInput]);
+
+  const removeNote = useCallback((id: number) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  const markWinner = (playerId: string) => {
+    socket.emit('mark-winner', { playerId });
+    setShowWinModal(false);
+  };
+
+  const endGame = () => {
+    if (window.confirm('¿Terminar la partida y ver el podio?')) socket.emit('end-game');
+  };
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(room.code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  const me = room.players.find(p => p.id === myId);
+
+  return (
+    <div className="flex flex-col h-screen overflow-hidden">
+
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-[rgba(7,7,15,0.85)] border-b border-[rgba(0,212,255,0.2)] backdrop-blur-md shrink-0 z-10">
+        <span
+          className="font-display font-black text-[1.1rem] shrink-0"
+          style={{
+            background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+        >
+          UnVeil
+        </span>
+
+        <button
+          onClick={copyCode}
+          className="flex items-center gap-1.5 bg-[rgba(0,212,255,0.12)] border border-[rgba(0,212,255,0.25)] rounded-lg px-2.5 py-1 font-display text-[0.8rem] text-neon-cyan cursor-pointer transition-colors hover:bg-[rgba(0,212,255,0.2)] shrink-0"
+        >
+          {copied ? '✓ Copiado' : `# ${room.code}`}
+        </button>
+
+        <div className="flex-1" />
+
+        {me && (
+          <div className="flex items-center gap-2">
+            <div
+              className="w-[30px] h-[30px] rounded-full flex items-center justify-center border-2 shrink-0"
+              style={{
+                color: getColor(room.players, myId),
+                borderColor: getColor(room.players, myId) + '80',
+                background:  getColor(room.players, myId) + '18',
+              }}
+            >
+              <PlayerIcon iconId={me.icon} size={14} color={getColor(room.players, myId)} />
+            </div>
+            <span className="text-[0.85rem] font-medium text-text-secondary">{me.name}</span>
+            {isLeader && <span className="badge badge-amber text-[0.58rem]">Líder</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Player panel */}
+      <div className="px-4 py-3 bg-[rgba(7,7,15,0.6)] border-b border-[rgba(0,212,255,0.2)] shrink-0 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          {room.players.map(p => {
+            const color = getColor(room.players, p.id);
+            const isMe  = p.id === myId;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setSelectedPlayer(p.id === selectedPlayer?.id ? null : p)}
+                className="flex items-center gap-1.5 px-3 py-[7px] rounded-full border cursor-pointer transition-all duration-[0.18s] text-[0.8rem] font-medium whitespace-nowrap shrink-0 hover:-translate-y-px"
+                style={{
+                  color,
+                  borderColor: color + '55',
+                  background: selectedPlayer?.id === p.id ? color + '18' : 'rgba(255,255,255,0.03)',
+                }}
+              >
+                <div
+                  className="w-[22px] h-[22px] rounded-full flex items-center justify-center"
+                  style={{ background: color + '22' }}
+                >
+                  <PlayerIcon iconId={p.icon} size={12} color={color} />
+                </div>
+                {p.name}
+                {isMe && <span className="opacity-50 text-[0.65rem]">(vos)</span>}
+                {p.wins > 0 && (
+                  <span
+                    className="font-display text-[0.65rem] font-bold px-1.5 py-px rounded-full"
+                    style={{ background: color + '25', color }}
+                  >
+                    {p.wins}★
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Game body */}
+      <div className="flex-1 overflow-y-auto p-4 md:grid md:grid-cols-[1fr_320px] md:gap-4 md:items-start">
+
+        {/* Notepad side */}
+        <div>
+          {/* My character */}
+          <div className="text-center p-3.5 bg-white/[0.02] border border-dashed border-[rgba(0,212,255,0.2)] rounded-lg mb-4">
+            <div className="text-[0.7rem] text-text-muted uppercase tracking-[0.1em] mb-1">
+              Tu personaje
+            </div>
+            <div className="font-display text-[1.6rem] tracking-[0.2em] text-text-muted">???</div>
+            <div className="text-[0.72rem] text-text-muted mt-1">Hacé preguntas para descubrirlo</div>
+          </div>
+
+          {/* Notepad */}
+          <div className="flex flex-col gap-2.5">
+            <div className="font-display text-[0.8rem] text-text-secondary uppercase tracking-[0.08em]">
+              📝 Mis notas
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                className="input text-[0.88rem]"
+                placeholder="Ej: Es humano · Sí"
+                value={noteInput}
+                onChange={e => setNoteInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addNote(); } }}
+              />
+              <button
+                className="btn btn-ghost btn-icon shrink-0"
+                onClick={addNote}
+                title="Agregar nota"
+              >
+                ＋
+              </button>
+            </div>
+
+            {notes.length === 0 && (
+              <div className="text-center py-5 text-text-muted text-[0.82rem]">
+                Tus notas aparecerán acá
+              </div>
+            )}
+
+            {notes.map(note => (
+              <div
+                key={note.id}
+                className="flex items-center gap-2.5 px-3 py-[9px] bg-white/[0.03] border border-[rgba(0,212,255,0.2)] rounded-[10px] text-[0.88rem] animate-fade-up"
+              >
+                <span className="flex-1 break-words">{note.text}</span>
+                <button
+                  onClick={() => removeNote(note.id)}
+                  title="Eliminar nota"
+                  className="bg-transparent border-none cursor-pointer text-text-muted p-0.5 rounded text-[0.9rem] flex items-center transition-colors hover:text-neon-red"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Leader controls (desktop sidebar) */}
+        {isLeader && (
+          <div className="card h-fit hidden md:block">
+            <div className="section-title mb-3">Controles</div>
+            <div className="flex flex-col gap-2">
+              <button className="btn btn-amber btn-full" onClick={() => setShowWinModal(true)}>
+                🏆 Marcar ganador
+              </button>
+              <button className="btn btn-danger btn-full" onClick={endGame}>
+                🚩 Finalizar partida
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Leader footer (mobile) */}
+      {isLeader && (
+        <div className="md:hidden flex gap-2 flex-wrap items-center px-4 py-3 border-t border-[rgba(0,212,255,0.2)] bg-[rgba(7,7,15,0.85)] shrink-0">
+          <button className="btn btn-amber" onClick={() => setShowWinModal(true)}>🏆 Ganador</button>
+          <button className="btn btn-danger" onClick={endGame}>🚩 Finalizar</button>
+        </div>
+      )}
+
+      {/* Character popup */}
+      {selectedPlayer && (() => {
+        const p     = selectedPlayer;
+        const color = getColor(room.players, p.id);
+        const isMe  = p.id === myId;
+        return (
+          <div
+            className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in"
+            onClick={() => setSelectedPlayer(null)}
+          >
+            <div
+              className="bg-[#0f0f1e] border border-[rgba(0,212,255,0.5)] rounded-xl p-7 max-w-[360px] w-full shadow-[0_0_40px_rgba(0,212,255,0.15)] animate-fade-up text-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center border-2 mx-auto mb-3"
+                style={{ color, borderColor: color, background: color + '18' }}
+              >
+                <PlayerIcon iconId={p.icon} size={28} color={color} />
+              </div>
+
+              <div className="font-display text-[0.95rem] font-bold mb-4" style={{ color }}>
+                {p.name} {isMe && '(vos)'}
+              </div>
+
+              {p.wins > 0 && (
+                <div className="mb-3">
+                  <span className="badge badge-amber">{p.wins} victoria{p.wins !== 1 ? 's' : ''}</span>
+                </div>
+              )}
+
+              <div className="text-[0.7rem] text-text-secondary uppercase tracking-[0.1em] mb-1.5">
+                Tiene que adivinar
+              </div>
+
+              {isMe ? (
+                <>
+                  <div className="font-display text-[2.5rem] tracking-[0.3em] text-text-muted mb-2">???</div>
+                  <div className="text-[0.8rem] text-text-muted">¡Este es tu personaje secreto!</div>
+                </>
+              ) : (
+                <>
+                  <div className="font-display text-[1.5rem] font-black mb-1" style={{ color }}>
+                    {p.characterName ?? '???'}
+                  </div>
+                  <div className="text-[0.85rem] text-text-secondary mb-4">
+                    {p.characterOrigin ? `📺 ${p.characterOrigin}` : ''}
+                  </div>
+                </>
+              )}
+
+              {isLeader && !isMe && (
+                <button
+                  className="btn btn-amber btn-full mt-2"
+                  onClick={() => { markWinner(p.id); setSelectedPlayer(null); }}
+                >
+                  🏆 ¡Adivinó!
+                </button>
+              )}
+
+              <button className="btn btn-ghost btn-full mt-2" onClick={() => setSelectedPlayer(null)}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Win modal */}
+      {showWinModal && (
+        <div
+          className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowWinModal(false)}
+        >
+          <div
+            className="bg-[#0f0f1e] border border-[rgba(0,212,255,0.2)] rounded-xl p-6 max-w-[400px] w-full shadow-[0_0_40px_rgba(0,0,0,0.5)] animate-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="font-display text-[1rem] font-bold mb-4 text-neon-amber">
+              🏆 ¿Quién adivinó su personaje?
+            </div>
+            <div className="flex flex-col gap-1.5 mb-4 max-h-[250px] overflow-y-auto">
+              {room.players.filter(p => p.id !== myId).map(p => {
+                const color = getColor(room.players, p.id);
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => markWinner(p.id)}
+                    className="flex items-center gap-3 px-3.5 py-2.5 bg-white/[0.03] border border-[rgba(0,212,255,0.2)] rounded-[10px] cursor-pointer transition-all hover:bg-[rgba(245,158,11,0.1)] hover:border-[rgba(245,158,11,0.4)]"
+                  >
+                    <div
+                      className="player-avatar"
+                      style={{ color, borderColor: color + '55', background: color + '18', width: 32, height: 32 }}
+                    >
+                      <PlayerIcon iconId={p.icon} size={14} color={color} />
+                    </div>
+                    <span className="flex-1 font-medium">{p.name}</span>
+                    {p.wins > 0 && <span className="badge badge-amber">{p.wins}★</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <button className="btn btn-ghost btn-full" onClick={() => setShowWinModal(false)}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
