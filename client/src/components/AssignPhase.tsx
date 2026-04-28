@@ -125,7 +125,11 @@ export default function AssignPhase({ room, myId }: AssignPhaseProps) {
                 )}
               </div>
 
-              <button type="submit" className="btn btn-secondary btn-full btn-lg mt-1">
+              <button
+                type="submit"
+                className="btn btn-secondary btn-full btn-lg mt-1"
+                disabled={!charName.trim() || !charOrigin.trim()}
+              >
                 <FaCheckCircle className="inline mr-2" />Confirmar personaje
               </button>
             </form>

@@ -140,7 +140,7 @@ export const roomService = {
     target.characterOrigin = characterOrigin.trim();
     writer.hasAssigned = true;
 
-    if (room.players.every(p => p.hasAssigned)) {
+    if (room.players.every(p => p.hasAssigned || !p.connected)) {
       room.phase = 'playing';
       // Pick random starting player from turnOrder
       const startIdx = Math.floor(Math.random() * room.turnOrder.length);
@@ -251,11 +251,8 @@ export const roomService = {
           target.characterOrigin = 'Desconocido';
         }
       }
-      if (room.players.every(p => p.hasAssigned)) {
-        room.phase = 'playing';
-        const startIdx = Math.floor(Math.random() * room.turnOrder.length);
-        room.currentTurnPlayerId = room.turnOrder[startIdx];
-      }
+      // Don't auto-start the game on disconnect; submitCharacter will start it
+      // once all remaining connected players have submitted.
     } else if (room.phase === 'playing') {
       if (!room.players.some(p => p.isLeader && p.connected)) {
         const next = room.players.find(p => p.connected);
