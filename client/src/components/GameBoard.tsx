@@ -20,9 +20,25 @@ interface GameBoardProps {
 export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [showWinModal, setShowWinModal]       = useState(false);
-  const [notes, setNotes]                     = useState<Note[]>([]);
+  const [notes, setNotes]                     = useState<Note[]>(() => {
+    try {
+      const raw = localStorage.getItem(`unveil_notes_${room.code}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          noteIdCounter = Math.max(...parsed.map((n: Note) => n.id));
+          return parsed;
+        }
+      }
+    } catch {}
+    return [];
+  });
   const [noteInput, setNoteInput]             = useState('');
   const [copied, setCopied]                   = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(`unveil_notes_${room.code}`, JSON.stringify(notes));
+  }, [notes, room.code]);
 
   const addNote = useCallback(() => {
     if (!noteInput.trim()) return;
@@ -62,7 +78,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
     : 1;
 
   const [roundAnimation, setRoundAnimation] = useState<number | null>(null);
-  const prevRoundRef = useRef<number>(0);
+  const prevRoundRef = useRef<number>(currentRound);
 
   useEffect(() => {
     if (currentRound !== prevRoundRef.current) {

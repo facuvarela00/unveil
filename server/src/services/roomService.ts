@@ -261,10 +261,7 @@ export const roomService = {
         const next = room.players.find(p => p.connected);
         if (next) next.isLeader = true;
       }
-      // If disconnected player was current turn, advance
-      if (room.currentTurnPlayerId === playerId) {
-        room.currentTurnPlayerId = findNextTurnPlayerId(room, playerId);
-      }
+      // Don't auto-advance turn on disconnect — player may reconnect shortly
     }
 
     roomRepository.update(room);
