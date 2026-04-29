@@ -193,7 +193,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
       )}
 
       {/* "Your turn" toast overlay */}
-      {myTurnToast && (
+      {myTurnToast && roundAnimation === null && (
         <div
           key="my-turn-toast"
           className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none animate-round-fade"
@@ -247,6 +247,21 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             <div className="text-text-muted text-[0.8rem] tracking-[0.2em] uppercase">
               {roundAnimation === 1 ? '¡Que empiece el juego!' : 'Nueva ronda'}
             </div>
+            {isMyTurn && (
+              <div
+                className="font-display font-black tracking-[0.12em] uppercase mt-4"
+                style={{
+                  fontSize: '2rem',
+                  background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.5))',
+                }}
+              >
+                ¡Tu turno!
+              </div>
+            )}
           </div>
         </div>
       )}
