@@ -86,6 +86,9 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
   // "Your turn" toast
   const [myTurnToast, setMyTurnToast] = useState(false);
   const prevTurnRef = useRef<string | null>(null);
+  // Always-current ref so deferred callbacks can check whose turn it really is
+  const currentTurnPlayerIdRef = useRef(room.currentTurnPlayerId);
+  currentTurnPlayerIdRef.current = room.currentTurnPlayerId;
 
   useEffect(() => {
     if (currentRound !== prevRoundRef.current) {
@@ -95,18 +98,22 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
       const t = setTimeout(() => {
         roundAnimatingRef.current = false;
         setRoundAnimation(null);
-        if (pendingMyTurnRef.current) {
+        if (pendingMyTurnRef.current && currentTurnPlayerIdRef.current === myId) {
           pendingMyTurnRef.current = false;
           setMyTurnToast(true);
           setTimeout(() => setMyTurnToast(false), 2800);
+        } else {
+          pendingMyTurnRef.current = false;
         }
       }, 2800);
       return () => {
         clearTimeout(t);
         roundAnimatingRef.current = false;
+        // Do NOT leave pendingMyTurnRef dirty — clear it so next animation starts clean
+        pendingMyTurnRef.current = false;
       };
     }
-  }, [currentRound]);
+  }, [currentRound, myId]);
 
   useEffect(() => {
     const prev = prevTurnRef.current;
@@ -120,6 +127,9 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
         const t = setTimeout(() => setMyTurnToast(false), 2800);
         return () => clearTimeout(t);
       }
+    } else if (room.currentTurnPlayerId !== myId) {
+      // Turn moved away from me — clear any pending toast to avoid stale state
+      pendingMyTurnRef.current = false;
     }
   }, [room.currentTurnPlayerId, myId]);
 
