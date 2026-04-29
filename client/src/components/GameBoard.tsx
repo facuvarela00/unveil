@@ -80,27 +80,46 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
 
   const [roundAnimation, setRoundAnimation] = useState<number | null>(null);
   const prevRoundRef = useRef<number>(currentRound);
-
-  useEffect(() => {
-    if (currentRound !== prevRoundRef.current) {
-      prevRoundRef.current = currentRound;
-      setRoundAnimation(currentRound);
-      const t = setTimeout(() => setRoundAnimation(null), 2800);
-      return () => clearTimeout(t);
-    }
-  }, [currentRound]);
+  const roundAnimatingRef = useRef(false);
+  const pendingMyTurnRef = useRef(false);
 
   // "Your turn" toast
   const [myTurnToast, setMyTurnToast] = useState(false);
   const prevTurnRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (currentRound !== prevRoundRef.current) {
+      prevRoundRef.current = currentRound;
+      roundAnimatingRef.current = true;
+      setRoundAnimation(currentRound);
+      const t = setTimeout(() => {
+        roundAnimatingRef.current = false;
+        setRoundAnimation(null);
+        if (pendingMyTurnRef.current) {
+          pendingMyTurnRef.current = false;
+          setMyTurnToast(true);
+          setTimeout(() => setMyTurnToast(false), 2800);
+        }
+      }, 2800);
+      return () => {
+        clearTimeout(t);
+        roundAnimatingRef.current = false;
+      };
+    }
+  }, [currentRound]);
+
+  useEffect(() => {
     const prev = prevTurnRef.current;
     prevTurnRef.current = room.currentTurnPlayerId;
     if (room.currentTurnPlayerId === myId && prev !== myId) {
-      setMyTurnToast(true);
-      const t = setTimeout(() => setMyTurnToast(false), 2800);
-      return () => clearTimeout(t);
+      if (roundAnimatingRef.current) {
+        // Round animation is playing — show "Es tu turno" after it finishes
+        pendingMyTurnRef.current = true;
+      } else {
+        setMyTurnToast(true);
+        const t = setTimeout(() => setMyTurnToast(false), 2800);
+        return () => clearTimeout(t);
+      }
     }
   }, [room.currentTurnPlayerId, myId]);
 
@@ -247,21 +266,6 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             <div className="text-text-muted text-[0.8rem] tracking-[0.2em] uppercase">
               {roundAnimation === 1 ? '¡Que empiece el juego!' : 'Nueva ronda'}
             </div>
-            {isMyTurn && (
-              <div
-                className="font-display font-black tracking-[0.12em] uppercase mt-4"
-                style={{
-                  fontSize: '2rem',
-                  background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.5))',
-                }}
-              >
-                ¡Tu turno!
-              </div>
-            )}
           </div>
         </div>
       )}
