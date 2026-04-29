@@ -128,8 +128,9 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
         return () => clearTimeout(t);
       }
     } else if (room.currentTurnPlayerId !== myId) {
-      // Turn moved away from me — clear any pending toast to avoid stale state
+      // Turn moved away from me — hide toast and clear pending flag
       pendingMyTurnRef.current = false;
+      setMyTurnToast(false);
     }
   }, [room.currentTurnPlayerId, myId]);
 
@@ -222,7 +223,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
       )}
 
       {/* "Your turn" toast overlay */}
-      {myTurnToast && roundAnimation === null && (
+      {myTurnToast && roundAnimation === null && isMyTurn && (
         <div
           key="my-turn-toast"
           className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none animate-round-fade"
