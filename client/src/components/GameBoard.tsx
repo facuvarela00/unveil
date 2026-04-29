@@ -70,6 +70,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
   const iHaveGuessed = me?.hasGuessed ?? false;
   const currentTurnPlayer = room.players.find(p => p.id === room.currentTurnPlayerId);
   const currentTurnColor = room.currentTurnPlayerId ? getColor(room.players, room.currentTurnPlayerId) : '#00d4ff';
+  const currentTurnPlayerDisconnected = currentTurnPlayer ? !currentTurnPlayer.connected : false;
 
   // Round tracking
   const activePlayers = room.players.filter(p => !p.hasGuessed);
@@ -88,6 +89,20 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
       return () => clearTimeout(t);
     }
   }, [currentRound]);
+
+  // "Your turn" toast
+  const [myTurnToast, setMyTurnToast] = useState(false);
+  const prevTurnRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const prev = prevTurnRef.current;
+    prevTurnRef.current = room.currentTurnPlayerId;
+    if (room.currentTurnPlayerId === myId && prev !== myId) {
+      setMyTurnToast(true);
+      const t = setTimeout(() => setMyTurnToast(false), 2800);
+      return () => clearTimeout(t);
+    }
+  }, [room.currentTurnPlayerId, myId]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -117,7 +132,23 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
 
           {/* Text */}
           <div className="flex-1 min-w-0">
-            {isMyTurn ? (
+            {currentTurnPlayerDisconnected ? (
+              <>
+                <div
+                  className="font-display font-bold text-[1rem] leading-tight"
+                  style={{ color: '#f59e0b', textShadow: '0 0 12px rgba(245,158,11,0.5)' }}
+                >
+                  Esperando a{' '}
+                  <span style={{ color: currentTurnColor }}>
+                    {currentTurnPlayer.name}
+                  </span>
+                  …
+                </div>
+                <div className="text-[0.72rem] text-text-muted mt-0.5">
+                  Partida en pausa hasta que vuelva
+                </div>
+              </>
+            ) : isMyTurn ? (
               <>
                 <div
                   className="font-display font-bold text-[1rem] leading-tight"
@@ -158,6 +189,35 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
           >
             Ronda {currentRound}
           </span>
+        </div>
+      )}
+
+      {/* "Your turn" toast overlay */}
+      {myTurnToast && (
+        <div
+          key="my-turn-toast"
+          className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none animate-round-fade"
+        >
+          <div className="text-center px-10 py-8 rounded-2xl"
+            style={{ background: 'rgba(7,7,15,0.82)', border: '1px solid rgba(0,212,255,0.25)', backdropFilter: 'blur(12px)' }}
+          >
+            <div
+              className="font-display font-black tracking-[0.12em] uppercase mb-1"
+              style={{
+                fontSize: '3rem',
+                background: 'linear-gradient(135deg, #00d4ff, #a855f7)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.5))',
+              }}
+            >
+              ¡Tu turno!
+            </div>
+            <div className="text-text-muted text-[0.8rem] tracking-[0.2em] uppercase">
+              Hacé tu pregunta
+            </div>
+          </div>
         </div>
       )}
 
@@ -343,8 +403,8 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             ))}
           </div>
 
-          {/* Continuar button (current player only, not if guessed) */}
-          {isMyTurn && !iHaveGuessed && (
+          {/* Continuar button (current player only, not if guessed, not if waiting) */}
+          {isMyTurn && !iHaveGuessed && !currentTurnPlayerDisconnected && (
             <button
               className="btn btn-primary btn-full mt-5"
               onClick={() => socket.emit('next-turn')}

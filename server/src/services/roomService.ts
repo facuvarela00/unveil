@@ -20,7 +20,7 @@ function makePlayer(
 function findNextTurnPlayerId(room: Room, afterId: string): string | null {
   const active = room.turnOrder.filter(id => {
     const p = room.players.find(x => x.id === id);
-    return p && p.connected !== false && !p.hasGuessed;
+    return p && !p.hasGuessed;
   });
   if (active.length === 0) return null;
   const idx = room.turnOrder.indexOf(afterId);
