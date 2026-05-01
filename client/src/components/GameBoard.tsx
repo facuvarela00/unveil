@@ -335,31 +335,34 @@ export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardP
 
         <div className="flex-1" />
 
-        {me && (
-          <div className="flex items-center gap-2">
-            <div
-              className="w-[30px] h-[30px] rounded-full flex items-center justify-center border-2 shrink-0"
-              style={{
-                color: getColor(room.players, myId),
-                borderColor: getColor(room.players, myId) + '80',
-                background:  getColor(room.players, myId) + '18',
-              }}
-            >
-              <PlayerIcon iconId={me.icon} size={14} color={getColor(room.players, myId)} />
+        {/* Right side: player info + exit — shrinks gracefully on narrow screens */}
+        <div className="flex items-center gap-2 min-w-0 shrink">
+          {me && (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div
+                className="w-[26px] h-[26px] rounded-full flex items-center justify-center border-2 shrink-0"
+                style={{
+                  color: getColor(room.players, myId),
+                  borderColor: getColor(room.players, myId) + '80',
+                  background:  getColor(room.players, myId) + '18',
+                }}
+              >
+                <PlayerIcon iconId={me.icon} size={12} color={getColor(room.players, myId)} />
+              </div>
+              <span className="text-[0.82rem] font-medium text-text-secondary truncate max-w-[90px] sm:max-w-[140px]">{me.name}</span>
+              {isLeader && <span className="badge badge-amber text-[0.58rem] shrink-0">Líder</span>}
+              {iHaveGuessed && <span className="badge badge-amber text-[0.58rem] shrink-0 hidden sm:inline-flex">✓</span>}
             </div>
-            <span className="text-[0.85rem] font-medium text-text-secondary">{me.name}</span>
-            {isLeader && <span className="badge badge-amber text-[0.58rem]">Líder</span>}
-            {iHaveGuessed && <span className="badge badge-amber text-[0.58rem]">Adivinaste ✓</span>}
-          </div>
-        )}
+          )}
 
-        <button
-          onClick={() => setShowExitModal(true)}
-          title="Salir de la partida"
-          className="ml-2 shrink-0 w-[30px] h-[30px] flex items-center justify-center rounded-lg border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] text-[rgba(239,68,68,0.7)] transition-colors hover:bg-[rgba(239,68,68,0.18)] hover:text-[#ef4444]"
-        >
-          <FaSignOutAlt size={13} />
-        </button>
+          <button
+            onClick={() => setShowExitModal(true)}
+            title="Salir de la partida"
+            className="shrink-0 w-[28px] h-[28px] flex items-center justify-center rounded-lg border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] text-[rgba(239,68,68,0.7)] transition-colors hover:bg-[rgba(239,68,68,0.18)] hover:text-[#ef4444]"
+          >
+            <FaSignOutAlt size={12} />
+          </button>
+        </div>
       </div>
 
       {/* Player panel */}
