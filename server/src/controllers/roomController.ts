@@ -53,9 +53,9 @@ export function registerRoomController(io: Server, socket: Socket): void {
 
   socket.on('mark-winner', ({ playerId }: MarkWinnerPayload) => {
     if (!myRoom || !myId) return;
-    const { winnerName, error } = roomService.markWinner(myRoom, myId, playerId);
+    const { winnerName, characterName, characterOrigin, error } = roomService.markWinner(myRoom, myId, playerId);
     if (error) { socket.emit('error', { message: error }); return; }
-    if (winnerName) io.to(myRoom).emit('winner-announced', { playerName: winnerName, playerId });
+    if (winnerName) io.to(myRoom).emit('winner-announced', { playerName: winnerName, playerId, characterName, characterOrigin });
     broadcast(io, myRoom);
   });
 

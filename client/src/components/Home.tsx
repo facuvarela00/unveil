@@ -55,7 +55,7 @@ export default function Home({ onJoin }: HomeProps) {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="logo-text">UnVeil</div>
+          <div className="logo-text">Unveil</div>
           <div className="logo-sub">Adiviná tu personaje</div>
         </div>
 
@@ -148,7 +148,7 @@ export default function Home({ onJoin }: HomeProps) {
             <div className="px-5 pb-6 pt-1 bg-white/[0.02] flex flex-col gap-5 animate-fade-up">
 
               <p className="text-[0.82rem] text-text-muted leading-relaxed">
-                UnVeil es un juego de mesa digital para jugar <strong className="text-text-secondary">en persona y en grupo</strong>.
+                Unveil es un juego de mesa digital para jugar <strong className="text-text-secondary">en persona y en grupo</strong>.
                 Cada jugador tiene un personaje secreto en la frente que <em>todos ven menos él</em>.
                 El objetivo es adivinarlo haciendo preguntas de sí o no.
               </p>

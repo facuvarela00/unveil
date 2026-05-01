@@ -45,7 +45,7 @@ export default function AssignPhase({ room, myId }: AssignPhaseProps) {
       <div className="w-full max-w-[480px] animate-fade-up">
 
         <div className="text-center mb-5">
-          <div className="logo-text text-[1.4rem]">UnVeil</div>
+          <div className="logo-text text-[1.4rem]">Unveil</div>
           <div className="mt-1.5">
             <span className="badge badge-purple">Fase de asignación</span>
           </div>

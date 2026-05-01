@@ -18,4 +18,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT ?? 3001;
-server.listen(PORT, () => console.log(`UnVeil server running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Unveil server running on http://localhost:${PORT}`));

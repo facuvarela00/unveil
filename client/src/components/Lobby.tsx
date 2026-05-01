@@ -74,7 +74,7 @@ export default function Lobby({ room, myId, isLeader, onGoHome }: LobbyProps) {
       <div className="w-full max-w-[520px] animate-fade-up">
 
         <div className="text-center mb-6">
-          <div className="logo-text text-[1.6rem]">UnVeil</div>
+          <div className="logo-text text-[1.6rem]">Unveil</div>
         </div>
 
         {/* Room code */}

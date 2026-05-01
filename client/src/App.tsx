@@ -83,9 +83,12 @@ export default function App() {
       if (me) saveSession(roomData.code, me.name, me.icon);
     });
 
-    socket.on('winner-announced', ({ playerName }: { playerName: string; playerId: string }) => {
-      setWinnerMsg(`¡${playerName} adivinó su personaje!`);
-      setTimeout(() => setWinnerMsg(''), 4000);
+    socket.on('winner-announced', ({ playerName, characterName, characterOrigin }: { playerName: string; playerId: string; characterName?: string; characterOrigin?: string }) => {
+      const msg = characterName
+        ? `¡${playerName} adivinó su personaje: ${characterName}${characterOrigin ? ` de ${characterOrigin}` : ''}!`
+        : `¡${playerName} adivinó su personaje!`;
+      setWinnerMsg(msg);
+      setTimeout(() => setWinnerMsg(''), 5000);
     });
 
     socket.on('error', ({ message }: { message: string }) => {
@@ -147,7 +150,7 @@ export default function App() {
       )}
 
       {screen === 'game' && room && (
-        <GameBoard room={room} myId={myId} isLeader={isLeader} />
+        <GameBoard room={room} myId={myId} isLeader={isLeader} onGoHome={handleGoHome} />
       )}
 
       {screen === 'podium' && room && (

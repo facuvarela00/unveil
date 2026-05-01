@@ -196,7 +196,7 @@ export const roomService = {
     }
 
     roomRepository.update(room);
-    return { room, winnerName: winner.name };
+    return { room, winnerName: winner.name, characterName: winner.characterName ?? undefined, characterOrigin: winner.characterOrigin ?? undefined };
   },
 
   endGame(code: string, leaderId: string): { room?: Room; error?: string } {

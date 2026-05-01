@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { FaTrophy, FaFlag, FaPlus, FaTimes, FaStickyNote, FaTv, FaStar, FaCheck, FaArrowRight } from 'react-icons/fa';
+import { FaTrophy, FaFlag, FaPlus, FaTimes, FaStickyNote, FaTv, FaStar, FaCheck, FaArrowRight, FaSignOutAlt } from 'react-icons/fa';
 import socket from '../socket';
 import { PlayerIcon } from './AnimalPicker';
 import { Room, Player } from '../types';
@@ -15,9 +15,10 @@ interface GameBoardProps {
   room: Room;
   myId: string;
   isLeader: boolean;
+  onGoHome: () => void;
 }
 
-export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
+export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [showWinModal, setShowWinModal]       = useState(false);
   const [notes, setNotes]                     = useState<Note[]>(() => {
@@ -292,7 +293,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             backgroundClip: 'text',
           }}
         >
-          UnVeil
+          Unveil
         </span>
 
         <button
@@ -321,6 +322,14 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             {iHaveGuessed && <span className="badge badge-amber text-[0.58rem]">Adivinaste ✓</span>}
           </div>
         )}
+
+        <button
+          onClick={onGoHome}
+          title="Salir de la partida"
+          className="ml-2 shrink-0 w-[30px] h-[30px] flex items-center justify-center rounded-lg border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] text-[rgba(239,68,68,0.7)] transition-colors hover:bg-[rgba(239,68,68,0.18)] hover:text-[#ef4444]"
+        >
+          <FaSignOutAlt size={13} />
+        </button>
       </div>
 
       {/* Player panel */}
@@ -387,6 +396,16 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
             <div className="text-[0.72rem] text-text-muted mt-1">Hacé preguntas para descubrirlo</div>
           </div>
 
+          {/* Continuar button (current player only, not if guessed, not if waiting) */}
+          {isMyTurn && !iHaveGuessed && !currentTurnPlayerDisconnected && (
+            <button
+              className="btn btn-primary btn-full mb-4"
+              onClick={() => socket.emit('next-turn')}
+            >
+              <FaArrowRight className="inline mr-2" />Continuar — Siguiente turno
+            </button>
+          )}
+
           {/* Notepad */}
           <div className="flex flex-col gap-2.5">
             <div className="font-display text-[0.8rem] text-text-secondary uppercase tracking-[0.08em] flex items-center gap-1.5">
@@ -416,32 +435,24 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
               </div>
             )}
 
-            {notes.map(note => (
-              <div
-                key={note.id}
-                className="flex items-center gap-2.5 px-3 py-[9px] bg-white/[0.03] border border-[rgba(0,212,255,0.2)] rounded-[10px] text-[0.88rem] animate-fade-up"
-              >
-                <span className="flex-1 break-words">{note.text}</span>
-                <button
-                  onClick={() => removeNote(note.id)}
-                  title="Eliminar nota"
-                  className="bg-transparent border-none cursor-pointer text-text-muted p-0.5 rounded flex items-center transition-colors hover:text-neon-red"
+            <div className="flex flex-wrap gap-2">
+              {[...notes].reverse().map(note => (
+                <div
+                  key={note.id}
+                  className={`flex items-center gap-2.5 px-3 py-[9px] bg-white/[0.03] border border-[rgba(0,212,255,0.2)] rounded-[10px] text-[0.88rem] animate-fade-up ${note.text.length > 35 ? 'w-full' : 'flex-[1_1_calc(50%-4px)]'}`}
                 >
-                  <FaTimes />
-                </button>
-              </div>
-            ))}
+                  <span className="flex-1 break-words">{note.text}</span>
+                  <button
+                    onClick={() => removeNote(note.id)}
+                    title="Eliminar nota"
+                    className="bg-transparent border-none cursor-pointer text-text-muted p-0.5 rounded flex items-center transition-colors hover:text-neon-red shrink-0"
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-
-          {/* Continuar button (current player only, not if guessed, not if waiting) */}
-          {isMyTurn && !iHaveGuessed && !currentTurnPlayerDisconnected && (
-            <button
-              className="btn btn-primary btn-full mt-5"
-              onClick={() => socket.emit('next-turn')}
-            >
-              <FaArrowRight className="inline mr-2" />Continuar — Siguiente turno
-            </button>
-          )}
         </div>
 
         {/* Leader controls (desktop sidebar) */}
@@ -533,7 +544,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                 </>
               )}
 
-              {isLeader && !isMe && !p.hasGuessed && (
+              {isLeader && !p.hasGuessed && (
                 <button
                   className="btn btn-amber btn-full mt-2"
                   onClick={() => { markWinner(p.id); setSelectedPlayer(null); }}
@@ -564,7 +575,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
               <FaTrophy />¿Quién adivinó su personaje?
             </div>
             <div className="flex flex-col gap-1.5 mb-4 max-h-[250px] overflow-y-auto">
-              {room.players.filter(p => p.id !== myId && !p.hasGuessed).map(p => {
+              {room.players.filter(p => !p.hasGuessed).map(p => {
                 const color = getColor(room.players, p.id);
                 return (
                   <div
@@ -583,7 +594,7 @@ export default function GameBoard({ room, myId, isLeader }: GameBoardProps) {
                   </div>
                 );
               })}
-              {room.players.filter(p => p.id !== myId && !p.hasGuessed).length === 0 && (
+              {room.players.filter(p => !p.hasGuessed).length === 0 && (
                 <div className="text-center py-4 text-text-muted text-[0.82rem]">
                   Todos ya adivinaron su personaje
                 </div>
