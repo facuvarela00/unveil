@@ -1,14 +1,31 @@
 import { useState, useEffect } from 'react';
-import { FaBolt, FaRocket, FaChevronDown, FaUsers, FaCrown, FaUserSecret, FaComments, FaTrophy } from 'react-icons/fa';
+import { FaBolt, FaRocket, FaChevronDown, FaUsers, FaCrown, FaUserSecret, FaComments, FaTrophy, FaSignInAlt, FaTimes } from 'react-icons/fa';
 import AnimalPicker from './AnimalPicker';
 import { JoinParams } from '../types';
 
 interface HomeProps {
   onJoin: (params: JoinParams) => void;
+  reconnectInfo?: { roomCode: string; name: string; icon: string } | null;
+  onReconnect?: () => void;
+  onDismissReconnect?: () => void;
 }
 
-export default function Home({ onJoin }: HomeProps) {
+export default function Home({ onJoin, reconnectInfo, onReconnect, onDismissReconnect }: HomeProps) {
   const [tab, setTab] = useState<'create' | 'join'>('create');
+  const [countdown, setCountdown] = useState(30);
+
+  useEffect(() => {
+    if (!reconnectInfo) return;
+    setCountdown(30);
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { clearInterval(interval); onDismissReconnect?.(); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reconnectInfo]);
   const [showHowTo, setShowHowTo] = useState(false);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('dog');
@@ -52,6 +69,38 @@ export default function Home({ onJoin }: HomeProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 px-4">
       <div className="w-full max-w-[440px] animate-fade-up">
+
+        {/* Reconnect banner */}
+        {reconnectInfo && (
+          <div className="mb-5 p-4 rounded-xl border border-[rgba(0,212,255,0.35)] bg-[rgba(0,212,255,0.05)] animate-fade-up">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[rgba(0,212,255,0.1)] border border-[rgba(0,212,255,0.25)] shrink-0">
+                <FaSignInAlt className="text-neon-cyan text-[0.7rem]" />
+              </div>
+              <span className="font-display font-bold text-neon-cyan text-[0.88rem] flex-1">Partida activa</span>
+              <span className="text-text-muted text-[0.72rem] font-display">{countdown}s</span>
+              <button
+                onClick={onDismissReconnect}
+                className="bg-transparent border-none cursor-pointer text-text-muted p-1 rounded transition-colors hover:text-white"
+              >
+                <FaTimes className="text-[0.75rem]" />
+              </button>
+            </div>
+            <p className="text-[0.78rem] text-text-secondary mb-3 pl-9">
+              Estabas en la sala <strong className="text-neon-cyan font-display tracking-widest">{reconnectInfo.roomCode}</strong> como <strong className="text-text-secondary">{reconnectInfo.name}</strong>
+            </p>
+            <button className="btn btn-primary btn-full" onClick={onReconnect}>
+              <FaSignInAlt className="inline mr-1.5" />Volver a ingresar
+            </button>
+            {/* Countdown progress bar */}
+            <div className="mt-2.5 h-[2px] rounded-full bg-[rgba(0,212,255,0.12)] overflow-hidden">
+              <div
+                className="h-full bg-neon-cyan rounded-full transition-[width] duration-1000 ease-linear"
+                style={{ width: `${(countdown / 30) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Logo */}
         <div className="text-center mb-8">

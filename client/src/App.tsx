@@ -44,7 +44,11 @@ export default function App() {
   const [room, setRoom]         = useState<Room | null>(null);
   const [error, setError]       = useState('');
   const [winnerMsg, setWinnerMsg] = useState('');
+  const [defeatMsg, setDefeatMsg] = useState('');
   const reconnecting = useRef(false);
+  const [pendingReconnect, setPendingReconnect] = useState<{ roomCode: string; name: string; icon: string } | null>(() => loadSession());
+  const screenRef = useRef<ScreenType>('home');
+  screenRef.current = screen;
 
   // Auto-reconnect on page refresh
   useEffect(() => {
@@ -83,12 +87,24 @@ export default function App() {
       if (me) saveSession(roomData.code, me.name, me.icon);
     });
 
-    socket.on('winner-announced', ({ playerName, characterName, characterOrigin }: { playerName: string; playerId: string; characterName?: string; characterOrigin?: string }) => {
-      const msg = characterName
-        ? `¡${playerName} adivinó su personaje: ${characterName}${characterOrigin ? ` de ${characterOrigin}` : ''}!`
-        : `¡${playerName} adivinó su personaje!`;
-      setWinnerMsg(msg);
+    socket.on('winner-announced', ({ playerName, characterName, characterOrigin, allGuessed }: { playerName: string; playerId: string; characterName?: string; characterOrigin?: string; allGuessed?: boolean }) => {
+      if (allGuessed) {
+        setWinnerMsg('¡Todos adivinaron su personaje!');
+      } else {
+        const msg = characterName
+          ? `¡${playerName} adivinó: ${characterName}${characterOrigin ? ` de ${characterOrigin}` : ''}!`
+          : `¡${playerName} adivinó su personaje!`;
+        setWinnerMsg(msg);
+      }
       setTimeout(() => setWinnerMsg(''), 5000);
+    });
+
+    socket.on('player-defeated', ({ playerName, characterName, characterOrigin }: { playerName: string; characterName?: string; characterOrigin?: string }) => {
+      const msg = characterName
+        ? `${playerName} no pudo adivinar su personaje: ${characterName}${characterOrigin ? ` de ${characterOrigin}` : ''}`
+        : `${playerName} no pudo adivinar su personaje`;
+      setDefeatMsg(msg);
+      setTimeout(() => setDefeatMsg(''), 6000);
     });
 
     socket.on('error', ({ message }: { message: string }) => {
@@ -99,6 +115,7 @@ export default function App() {
         reconnecting.current = false;
         clearSession();
         setScreen('home');
+        setPendingReconnect(null);
       }
     });
 
@@ -107,13 +124,51 @@ export default function App() {
       setTimeout(() => setError(''), 5000);
     });
 
+    // Re-join room automatically when socket reconnects mid-game
+    socket.on('connect', () => {
+      const session = loadSession();
+      if (session && screenRef.current !== 'home') {
+        socket.emit('join-room', { code: session.roomCode, name: session.name, icon: session.icon, playerId: myId });
+      }
+    });
+
+    // When tab becomes visible again, ask server for current state (fixes stale UI on slow phones)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && socket.connected && screenRef.current !== 'home') {
+        socket.emit('sync-room');
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
     return () => {
       socket.off('room-update');
       socket.off('winner-announced');
+      socket.off('player-defeated');
       socket.off('error');
       socket.off('connect_error');
+      socket.off('connect');
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [myId]);
+
+  // Clear the reconnect banner once the user is back in a game
+  useEffect(() => {
+    if (screen !== 'home') setPendingReconnect(null);
+  }, [screen]);
+
+  const handleReconnect = useCallback(() => {
+    if (!pendingReconnect) return;
+    reconnecting.current = true;
+    const { roomCode, name, icon } = pendingReconnect;
+    const attempt = () => socket.emit('join-room', { code: roomCode, name, icon, playerId: myId });
+    if (socket.connected) attempt();
+    else { socket.connect(); socket.once('connect', attempt); }
+  }, [pendingReconnect, myId]);
+
+  const handleDismissReconnect = useCallback(() => {
+    clearSession();
+    setPendingReconnect(null);
+  }, []);
 
   const handleJoin = useCallback(({ name, icon, roomCode, isCreating }: JoinParams) => {
     setError('');
@@ -130,6 +185,7 @@ export default function App() {
     socket.disconnect();
     setRoom(null);
     setScreen('home');
+    setPendingReconnect(null);
   }, []);
 
   const isLeader = room?.players?.find(p => p.id === myId)?.isLeader ?? false;
@@ -138,8 +194,16 @@ export default function App() {
     <div className="relative z-[1] min-h-screen">
       {error     && <div className="toast toast-error">{error}</div>}
       {winnerMsg && <div className="toast toast-success">{winnerMsg}</div>}
+      {defeatMsg && <div className="toast toast-defeat">{defeatMsg}</div>}
 
-      {screen === 'home' && <Home onJoin={handleJoin} />}
+      {screen === 'home' && (
+        <Home
+          onJoin={handleJoin}
+          reconnectInfo={pendingReconnect}
+          onReconnect={handleReconnect}
+          onDismissReconnect={handleDismissReconnect}
+        />
+      )}
 
       {screen === 'lobby' && room && (
         <Lobby room={room} myId={myId} isLeader={isLeader} onGoHome={handleGoHome} />

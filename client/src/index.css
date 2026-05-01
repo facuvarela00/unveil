@@ -163,6 +163,7 @@
   }
   .toast-error   { @apply bg-neon-red   text-white shadow-[0_4px_20px_rgba(239,68,68,0.5)]; }
   .toast-success { @apply bg-neon-green text-white shadow-[0_4px_20px_rgba(34,197,94,0.5)]; }
+  .toast-defeat  { @apply bg-neon-amber text-white shadow-[0_4px_20px_rgba(245,158,11,0.5)]; }
 
   /* ── Player avatar circle ── */
   .player-avatar {

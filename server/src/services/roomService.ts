@@ -41,6 +41,7 @@ export const roomService = {
       players: [player],
       turnOrder: [playerId],
       currentTurnPlayerId: null,
+      startedAt: null,
     };
     roomRepository.create(room);
     return room;
@@ -142,6 +143,7 @@ export const roomService = {
 
     if (room.players.every(p => p.hasAssigned || !p.connected)) {
       room.phase = 'playing';
+      room.startedAt = Date.now();
       // Pick random starting player from turnOrder
       const startIdx = Math.floor(Math.random() * room.turnOrder.length);
       room.currentTurnPlayerId = room.turnOrder[startIdx];
@@ -153,7 +155,7 @@ export const roomService = {
 
   nextTurn(
     code: string, playerId: string
-  ): { room?: Room; error?: string } {
+  ): { room?: Room; error?: string; loserName?: string; loserCharacter?: string; loserOrigin?: string } {
     const room = roomRepository.findByCode(code);
     if (!room || room.phase !== 'playing') return { error: 'No hay partida en curso.' };
     if (room.currentTurnPlayerId !== playerId) return { error: 'No es tu turno.' };
@@ -164,6 +166,19 @@ export const roomService = {
 
     currentPlayer.turnCount++;
 
+    // If this player is the only one who hasn't guessed, they just had their last chance → defeat
+    const remaining = room.players.filter(p => !p.hasGuessed);
+    if (remaining.length === 1 && remaining[0].id === playerId) {
+      room.phase = 'ended';
+      roomRepository.update(room);
+      return {
+        room,
+        loserName: currentPlayer.name,
+        loserCharacter: currentPlayer.characterName ?? undefined,
+        loserOrigin: currentPlayer.characterOrigin ?? undefined,
+      };
+    }
+
     const nextId = findNextTurnPlayerId(room, playerId);
     room.currentTurnPlayerId = nextId;
 
@@ -173,7 +188,7 @@ export const roomService = {
 
   markWinner(
     code: string, leaderId: string, playerId: string
-  ): { room?: Room; winnerName?: string; error?: string } {
+  ): { room?: Room; winnerName?: string; characterName?: string; characterOrigin?: string; allGuessed?: boolean; error?: string } {
     const room = roomRepository.findByCode(code);
     if (!room) return { error: 'Sala no encontrada.' };
     if (!room.players.find(p => p.id === leaderId)?.isLeader) return { error: 'No tenés permisos.' };
@@ -195,8 +210,9 @@ export const roomService = {
       room.phase = 'ended';
     }
 
+    const allGuessed = room.players.every(p => p.hasGuessed);
     roomRepository.update(room);
-    return { room, winnerName: winner.name, characterName: winner.characterName ?? undefined, characterOrigin: winner.characterOrigin ?? undefined };
+    return { room, winnerName: winner.name, characterName: winner.characterName ?? undefined, characterOrigin: winner.characterOrigin ?? undefined, allGuessed };
   },
 
   endGame(code: string, leaderId: string): { room?: Room; error?: string } {
@@ -216,6 +232,7 @@ export const roomService = {
 
     room.phase = 'lobby';
     room.currentTurnPlayerId = null;
+    room.startedAt = null;
     room.players.forEach(p => {
       p.hasAssigned = false;
       p.characterName = null;

@@ -23,6 +23,7 @@ export interface Room {
   players: Player[];
   turnOrder: string[];
   currentTurnPlayerId: string | null;
+  startedAt: number | null;
 }
 
 export interface JoinParams {

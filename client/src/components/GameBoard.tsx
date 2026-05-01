@@ -4,6 +4,15 @@ import socket from '../socket';
 import { PlayerIcon } from './AnimalPicker';
 import { Room, Player } from '../types';
 
+function formatElapsed(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
 const COLORS = ['#00d4ff','#a855f7','#22c55e','#f59e0b','#ef4444','#ec4899','#3b82f6','#f97316'];
 const getColor = (players: Room['players'], id: string) =>
   COLORS[players.findIndex(p => p.id === id) % COLORS.length];
@@ -36,6 +45,20 @@ export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardP
   });
   const [noteInput, setNoteInput]             = useState('');
   const [copied, setCopied]                   = useState(false);
+  const [showExitModal, setShowExitModal]     = useState(false);
+  const [elapsedSecs, setElapsedSecs]         = useState(() =>
+    room.startedAt ? Math.floor((Date.now() - room.startedAt) / 1000) : 0
+  );
+
+  useEffect(() => {
+    if (!room.startedAt) return;
+    const interval = setInterval(() => {
+      setElapsedSecs(Math.floor((Date.now() - room.startedAt!) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [room.startedAt]);
+  const [showEndModal, setShowEndModal]       = useState(false);
+  const [pendingWinner, setPendingWinner]     = useState<Player | null>(null);
 
   useEffect(() => {
     localStorage.setItem(`unveil_notes_${room.code}`, JSON.stringify(notes));
@@ -56,9 +79,7 @@ export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardP
     setShowWinModal(false);
   };
 
-  const endGame = () => {
-    if (window.confirm('¿Terminar la partida y ver el podio?')) socket.emit('end-game');
-  };
+  const endGame = () => setShowEndModal(true);
 
   const copyCode = () => {
     navigator.clipboard.writeText(room.code);
@@ -303,6 +324,15 @@ export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardP
           {copied ? <><FaCheck className="inline mr-1" />Copiado</> : `# ${room.code}`}
         </button>
 
+        {room.startedAt && (
+          <span
+            className="font-display text-[0.72rem] font-bold tracking-[0.06em] px-2 py-0.5 rounded-md shrink-0"
+            style={{ color: '#8b9ab0', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            {formatElapsed(elapsedSecs)}
+          </span>
+        )}
+
         <div className="flex-1" />
 
         {me && (
@@ -324,7 +354,7 @@ export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardP
         )}
 
         <button
-          onClick={onGoHome}
+          onClick={() => setShowExitModal(true)}
           title="Salir de la partida"
           className="ml-2 shrink-0 w-[30px] h-[30px] flex items-center justify-center rounded-lg border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] text-[rgba(239,68,68,0.7)] transition-colors hover:bg-[rgba(239,68,68,0.18)] hover:text-[#ef4444]"
         >
@@ -547,7 +577,7 @@ export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardP
               {isLeader && !p.hasGuessed && (
                 <button
                   className="btn btn-amber btn-full mt-2"
-                  onClick={() => { markWinner(p.id); setSelectedPlayer(null); }}
+                  onClick={() => setPendingWinner(p)}
                 >
                   <FaTrophy className="inline mr-2" />¡Adivinó!
                 </button>
@@ -560,6 +590,126 @@ export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardP
           </div>
         );
       })()}
+
+      {/* Winner confirmation modal */}
+      {pendingWinner && (() => {
+        const p = pendingWinner;
+        const color = getColor(room.players, p.id);
+        return (
+          <div
+            className="fixed inset-0 bg-black/70 z-[300] flex items-center justify-center p-4 animate-fade-in"
+            onClick={() => setPendingWinner(null)}
+          >
+            <div
+              className="bg-[#0f0f1e] border border-[rgba(245,158,11,0.3)] rounded-xl p-6 max-w-[340px] w-full shadow-[0_0_40px_rgba(245,158,11,0.1)] animate-fade-up"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[rgba(245,158,11,0.1)] border border-[rgba(245,158,11,0.25)] shrink-0">
+                  <FaTrophy className="text-[#f59e0b] text-[0.85rem]" />
+                </div>
+                <div className="font-display font-bold text-[1rem]">¿Confirmar ganador?</div>
+              </div>
+
+              <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.04)] mb-5 ml-[2.875rem]">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center border-2 shrink-0"
+                  style={{ color, borderColor: color + '55', background: color + '18' }}
+                >
+                  <PlayerIcon iconId={p.icon} size={12} color={color} />
+                </div>
+                <span className="font-semibold text-[0.9rem]" style={{ color }}>{p.name}</span>
+                {p.characterName && p.characterName !== '???' && (
+                  <span className="text-text-muted text-[0.78rem] flex-1 text-right truncate">→ {p.characterName}</span>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  className="btn btn-amber flex-1"
+                  onClick={() => { markWinner(p.id); setSelectedPlayer(null); setShowWinModal(false); setPendingWinner(null); }}
+                >
+                  <FaTrophy className="inline mr-1.5" />Confirmar
+                </button>
+                <button className="btn btn-ghost flex-1" onClick={() => setPendingWinner(null)}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* End game confirmation modal */}
+      {showEndModal && (
+        <div
+          className="fixed inset-0 bg-black/70 z-[300] flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowEndModal(false)}
+        >
+          <div
+            className="bg-[#0f0f1e] border border-[rgba(239,68,68,0.3)] rounded-xl p-6 max-w-[340px] w-full shadow-[0_0_40px_rgba(239,68,68,0.1)] animate-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] shrink-0">
+                <FaFlag className="text-[#ef4444] text-[0.85rem]" />
+              </div>
+              <div className="font-display font-bold text-[1rem]">¿Finalizar la partida?</div>
+            </div>
+            <p className="text-[0.82rem] text-text-muted mb-5 pl-[2.875rem]">
+              Se termina el juego y todos verán el podio. Los jugadores que no adivinaron su personaje quedarán sin victoria en esta ronda.
+            </p>
+            <div className="flex gap-2">
+              <button
+                className="btn btn-danger flex-1"
+                onClick={() => { socket.emit('end-game'); setShowEndModal(false); }}
+              >
+                <FaFlag className="inline mr-1.5" />Finalizar
+              </button>
+              <button className="btn btn-ghost flex-1" onClick={() => setShowEndModal(false)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exit confirmation modal */}
+      {showExitModal && (
+        <div
+          className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowExitModal(false)}
+        >
+          <div
+            className="bg-[#0f0f1e] border border-[rgba(239,68,68,0.3)] rounded-xl p-6 max-w-[340px] w-full shadow-[0_0_40px_rgba(239,68,68,0.1)] animate-fade-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] shrink-0">
+                <FaSignOutAlt className="text-[#ef4444] text-[0.85rem]" />
+              </div>
+              <div className="font-display font-bold text-[1rem]">¿Salir de la partida?</div>
+            </div>
+            <p className="text-[0.82rem] text-text-muted mb-5 pl-[2.875rem]">
+              Se cerrará tu sesión. Si el juego todavía está activo, podrás volver a ingresar desde la pantalla de inicio.
+            </p>
+            <div className="flex gap-2">
+              <button
+                className="btn btn-danger flex-1"
+                onClick={onGoHome}
+              >
+                <FaSignOutAlt className="inline mr-1.5" />Salir
+              </button>
+              <button
+                className="btn btn-ghost flex-1"
+                onClick={() => setShowExitModal(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Win modal */}
       {showWinModal && (
@@ -580,7 +730,7 @@ export default function GameBoard({ room, myId, isLeader, onGoHome }: GameBoardP
                 return (
                   <div
                     key={p.id}
-                    onClick={() => markWinner(p.id)}
+                    onClick={() => setPendingWinner(p)}
                     className="flex items-center gap-3 px-3.5 py-2.5 bg-white/[0.03] border border-[rgba(0,212,255,0.2)] rounded-[10px] cursor-pointer transition-all hover:bg-[rgba(245,158,11,0.1)] hover:border-[rgba(245,158,11,0.4)]"
                   >
                     <div

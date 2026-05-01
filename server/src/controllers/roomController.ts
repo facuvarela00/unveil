@@ -53,9 +53,9 @@ export function registerRoomController(io: Server, socket: Socket): void {
 
   socket.on('mark-winner', ({ playerId }: MarkWinnerPayload) => {
     if (!myRoom || !myId) return;
-    const { winnerName, characterName, characterOrigin, error } = roomService.markWinner(myRoom, myId, playerId);
+    const { winnerName, characterName, characterOrigin, allGuessed, error } = roomService.markWinner(myRoom, myId, playerId);
     if (error) { socket.emit('error', { message: error }); return; }
-    if (winnerName) io.to(myRoom).emit('winner-announced', { playerName: winnerName, playerId, characterName, characterOrigin });
+    if (winnerName) io.to(myRoom).emit('winner-announced', { playerName: winnerName, playerId, characterName, characterOrigin, allGuessed });
     broadcast(io, myRoom);
   });
 
@@ -68,8 +68,9 @@ export function registerRoomController(io: Server, socket: Socket): void {
 
   socket.on('next-turn', () => {
     if (!myRoom || !myId) return;
-    const { error } = roomService.nextTurn(myRoom, myId);
+    const { error, loserName, loserCharacter, loserOrigin } = roomService.nextTurn(myRoom, myId);
     if (error) { socket.emit('error', { message: error }); return; }
+    if (loserName) io.to(myRoom).emit('player-defeated', { playerName: loserName, characterName: loserCharacter, characterOrigin: loserOrigin });
     broadcast(io, myRoom);
   });
 
@@ -85,6 +86,12 @@ export function registerRoomController(io: Server, socket: Socket): void {
     const { error } = roomService.restartGame(myRoom, myId);
     if (error) { socket.emit('error', { message: error }); return; }
     broadcast(io, myRoom);
+  });
+
+  socket.on('sync-room', () => {
+    if (!myRoom) return;
+    const room = roomRepository.findByCode(myRoom);
+    if (room) socket.emit('room-update', room);
   });
 
   socket.on('disconnect', () => {
